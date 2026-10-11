@@ -2,8 +2,22 @@ const allowlistConfig = require('./allowlist');
 const allowedOrigins = Array.isArray(allowlistConfig) ? allowlistConfig : (allowlistConfig.origins || []);
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
+const GZIP_PATH = path.join(__dirname, 'keys.gz');
 const JSON_PATH = path.join(__dirname, 'keys.json');
+
+function loadKeys() {
+  if (fs.existsSync(GZIP_PATH)) {
+    return JSON.parse(zlib.gunzipSync(fs.readFileSync(GZIP_PATH)).toString('utf8'));
+  }
+
+  if (fs.existsSync(JSON_PATH)) {
+    return JSON.parse(fs.readFileSync(JSON_PATH, 'utf8'));
+  }
+
+  throw new Error('Neither keys.gz nor keys.json exists.');
+}
 
 function normalizeOrigin(value) {
   if (!value) return null;
@@ -63,13 +77,13 @@ module.exports = async function handler(req, res) {
   if (!allowAllOrigins) res.setHeader('Access-Control-Allow-Origin', requestOrigin);
 
   try {
-    const fileData = fs.readFileSync(JSON_PATH, 'utf8');
-    const json = JSON.parse(fileData);
+    const json = loadKeys();
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify(json));
   } catch (error) {
+    console.error('Unable to load keys data:', error);
     res.statusCode = 500;
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ error: 'Unable to load keys data.' }));
