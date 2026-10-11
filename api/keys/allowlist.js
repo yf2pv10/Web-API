@@ -1,5 +1,5 @@
 module.exports = {
-  allowAllOrigins: false,
+  allowAllOrigins: true,
   origins: [
     "http://127.0.0.1:3000",
     "https://craftydlc.vercel.app",
